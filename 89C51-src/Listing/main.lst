@@ -1,0 +1,272 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              08/28/2022 21:21:43 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* ********************************************************************
+   2          FILE                   : main.c
+   3          
+   4          PROGRAM DESCRIPTION    : Program for the 8051/8052 with SPI interface to ADC module (MCP3202)
+   5                                    (Application Task) to read analog voltage in channel 0 of MCP3202. 
+   6                                                   
+   7             
+   8          AUTHOR                : K.M. Arun Kumar alias Arunkumar Murugeswaran
+   9             
+  10          KNOWN BUGS            : 
+  11          
+  12          NOTE                  :  RECOMMENDED to use SPI mode: 0 for MCP3202 ADC Module. 
+  13                                   MCU implementation supports only MSB First MCP3202 ADC Conversation.                   
+  14                                              
+  15          CHANGE LOGS           : 
+  16          
+  17          *****************************************************************************/
+  18          
+  19          #include "main.h"
+  20          
+  21          
+  22          /*------------------------------------------------------------*-
+  23          FUNCTION NAME  : main
+  24          
+  25          DESCRIPTION    :          
+  26                          
+  27          INPUT          : none
+  28          
+  29          OUTPUT         : 
+  30          
+  31          NOTE           : 
+  32          -*------------------------------------------------------------*/
+  33          
+  34          void main(void)
+  35          {
+  36   1         unsigned char adc_conf = 0; 
+  37   1           unsigned long cur_adc_result, prev_adc_result = MAX_ADC_VALUE + 1;    
+  38   1         unsigned long analog_val_in_digital_int_ch0, analog_val_in_digital_frac_ch0;
+  39   1         unsigned int percent_int_ch0, percent_frac_ch0;
+  40   1      
+  41   1         
+  42   1           /* ========= begin : USER CODE INITIALIZE ========== */
+  43   1         ERROR_LED = 0;         //output for MCU
+  44   1         ADC_CONSTANT_LED = 0;  //output for MCU
+  45   1         LCD_Init();
+  46   1         LCD_Const_Disp();
+  47   1         Serial_Init();     
+  48   1         putchar(0x0C);    // clear Hyper terminal
+  49   1         MCP3202_ADC_Init(); 
+  50   1         ADC_CONSTANT_LED = STATE_OFF;
+  51   1         ERROR_LED = STATE_OFF;
+  52   1         /* ========= end : USER CODE INITIALIZE ========== */
+  53   1           
+  54   1           while(1) // Super Loop
+C51 COMPILER V9.60.0.0   MAIN                                                              08/28/2022 21:21:43 PAGE 2   
+
+  55   1           {
+  56   2              adc_conf = 0; 
+  57   2              adc_conf |= (ADC_MSB_FIRST << ADC_MSB_FIRST_MODE_BIT_POS); 
+  58   2                  adc_conf |= (ADC_SGL_MODE << ADC_SGL_DIFF_MODE_BIT_POS); 
+  59   2                  adc_conf |= (ADC_CH_00 << ADC_ODD_SIGN_MODE_BIT_POS); 
+  60   2              adc_conf |= (SPI_MODE_0 << ADC_SPI_MODE_BIT_POS);
+  61   2                  cur_adc_result = MCP3202_ADC_Read_Proc(adc_conf); 
+  62   2                  
+  63   2            if(cur_adc_result != prev_adc_result)
+  64   2            {
+  65   3               #ifdef TRACE
+  66   3                  printf("Ch 0 : %4lu, 0x%4lX \r", cur_adc_result, cur_adc_result);
+  67   3              #endif 
+  68   3               ADC_CONSTANT_LED = STATE_OFF;
+  69   3               
+  70   3                       Encoded_To_Actual_Analog_Val_Calc(cur_adc_result, FULL_SCALE_ANALOG_VAL_CH0, MIN_ANALOG_V
+             -ALUE_CH0,\
+  71   3                         &analog_val_in_digital_int_ch0,&analog_val_in_digital_frac_ch0 );
+  72   3                       disp_format_data.disp_sign = STATE_NO;
+  73   3                       disp_format_data.num_digits_format = DISP_NUM_DIGIT2;
+  74   3                       disp_format_data.disp_data = analog_val_in_digital_int_ch0;     
+  75   3                       LCD_Disp_Goto_XY(SIGCH0_LINE_NUM, NUM_COL1);   
+  76   3                       LCD_Disp_Num(disp_format_data);
+  77   3          
+  78   3                   disp_format_data.disp_sign = STATE_NO;
+  79   3                       disp_format_data.num_digits_format = DISP_NUM_DIGIT1;
+  80   3                       disp_format_data.disp_data = analog_val_in_digital_frac_ch0;
+  81   3                   LCD_Disp_Goto_XY(SIGCH0_LINE_NUM, SIGNAL_FRAC_COL_NUM);    
+  82   3                     LCD_Disp_Num(disp_format_data);
+  83   3          
+  84   3                   Encoded_To_Percent_Calc(cur_adc_result, &percent_int_ch0, &percent_frac_ch0 );
+  85   3                   disp_format_data.disp_sign = STATE_NO;
+  86   3                       disp_format_data.num_digits_format = DISP_NUM_DIGIT3;
+  87   3                       disp_format_data.disp_data = percent_int_ch0;
+  88   3                   LCD_Disp_Goto_XY(SIGCH0_LINE_NUM, PERCENT_INT_COL_NUM);
+  89   3                     LCD_Disp_Num(disp_format_data);
+  90   3          
+  91   3                     disp_format_data.disp_sign = STATE_NO;
+  92   3                       disp_format_data.num_digits_format = DISP_NUM_DIGIT1;
+  93   3                   disp_format_data.disp_data = percent_frac_ch0;
+  94   3                   LCD_Disp_Goto_XY(SIGCH0_LINE_NUM, PERCENT_FRAC_COL_NUM);   
+  95   3                   LCD_Disp_Num(disp_format_data);          
+  96   3               prev_adc_result = cur_adc_result;
+  97   3            }
+  98   2            else
+  99   2            {
+ 100   3               ADC_CONSTANT_LED = STATE_ON;
+ 101   3            }
+ 102   2           }
+ 103   1         return; 
+ 104   1      }
+ 105          
+ 106          /*------------------------------------------------------------*-
+ 107          FUNCTION NAME  : LCD_Const_Disp
+ 108          
+ 109          DESCRIPTION    :  
+ 110            
+ 111          INPUT          :  
+ 112          
+ 113          OUTPUT         : 
+ 114          
+ 115          NOTE           :  
+C51 COMPILER V9.60.0.0   MAIN                                                              08/28/2022 21:21:43 PAGE 3   
+
+ 116          -*------------------------------------------------------------*/
+ 117          void LCD_Const_Disp()
+ 118          {
+ 119   1        const char signal_rep_disp[] = "V";
+ 120   1        
+ 121   1        LCD_Disp_Goto_XY(NUM_LINE1, NUM_COL1);
+ 122   1        LCD_Disp_Str("ADC Channel 0 Output");        
+ 123   1        LCD_Disp_Goto_XY (SIGCH0_LINE_NUM,SIGNAL_DECPT_COL_NUM );
+ 124   1        LCD_Write_Data('.');
+ 125   1        LCD_Disp_Goto_XY(SIGCH0_LINE_NUM,SIGNAL_DISP_COL_NUM);
+ 126   1        LCD_Disp_Str(signal_rep_disp);  
+ 127   1        LCD_Disp_Goto_XY(SIGCH0_LINE_NUM,PERCENT_DECPT_COL_NUM);
+ 128   1        LCD_Write_Data('.');
+ 129   1        LCD_Disp_Goto_XY(SIGCH0_LINE_NUM,PERCENT_DISP_COL_NUM);
+ 130   1        LCD_Write_Data('%');
+ 131   1        
+ 132   1        return;
+ 133   1        
+ 134   1      }
+ 135            
+ 136          /*------------------------------------------------------------*
+ 137          FUNCTION NAME  : Delay_in_Micro_Sec
+ 138          
+ 139          DESCRIPTION    :
+ 140                          
+ 141          INPUT          : 
+ 142          
+ 143          OUTPUT         : 
+ 144          
+ 145          NOTE           : 
+ 146          
+ 147          Func ID        :   
+ 148          -*------------------------------------------------------------*/
+ 149          void Delay_in_Micro_Sec(const unsigned long num_micro_seconds)
+ 150          {
+ 151   1        unsigned int i = 0;
+ 152   1        
+ 153   1        for (i = 0;  i < num_micro_seconds; ++i);
+ 154   1        return;   
+ 155   1      }
+ 156          
+ 157          /*------------------------------------------------------------*
+ 158          FUNCTION NAME  : Delay_in_Milli_Sec
+ 159          
+ 160          DESCRIPTION    :
+ 161                          
+ 162          INPUT          : 
+ 163          
+ 164          OUTPUT         : 
+ 165          
+ 166          NOTE           : 
+ 167          
+ 168          Func ID        :   
+ 169          -*------------------------------------------------------------*/
+ 170          void Delay_in_Milli_Sec(const unsigned long num_milli_seconds)
+ 171          {
+ 172   1        unsigned int i = 0;
+ 173   1        
+ 174   1        for (i = 0;  i < num_milli_seconds; ++i)
+ 175   1          Delay_in_Micro_Sec(100UL);
+ 176   1        return; 
+ 177   1      }
+C51 COMPILER V9.60.0.0   MAIN                                                              08/28/2022 21:21:43 PAGE 4   
+
+ 178          
+ 179          /*------------------------------------------------------------*
+ 180          FUNCTION NAME  : Delay_Time_By_Count
+ 181          
+ 182          DESCRIPTION    :
+ 183                          
+ 184          INPUT          : 
+ 185          
+ 186          OUTPUT         : 
+ 187          
+ 188          NOTE           : 
+ 189          
+ 190          Func ID        :    
+ 191          -*------------------------------------------------------------*/
+ 192          void Delay_Time_By_Count(long count_val)
+ 193          {
+ 194   1         while(count_val--);
+ 195   1         return;
+ 196   1      }
+ 197          
+ 198          /*------------------------------------------------------------*-
+ 199          FUNCTION NAME  : Write_Bit_in_Data
+ 200          
+ 201          DESCRIPTION     : write bit valve to data's bit, without affecting other bits of data .
+ 202                          . 0 is the least bit pos and 7 is the most bit pos 
+ 203          
+ 204          INPUT          : 
+ 205          
+ 206          OUTPUT         : none
+ 207          
+ 208          NOTE           : 
+ 209          -*------------------------------------------------------------*/
+ 210          void Write_Bit_in_Data(unsigned int *const data_ptr, const unsigned int bit_pos, const unsigned int set_bi
+             -t_val )
+ 211          {
+ 212   1          /* unsigned int bit_pos_data_val = 0x01; // 00000001
+ 213   1         
+ 214   1            // Left shift appropriate number of places,    so for bit_pos = 2, then bit_pos_data_val = 00000100 /
+ 215   1            bit_pos_data_val <<= bit_pos;
+ 216   1           // If we want 1 to be written at this bit_pos of data
+ 217   1           if (set_bit_val == 1)
+ 218   1           {
+ 219   1            // set 1 to bit_pos and all other bits of data are unchanged 
+ 220   1              *data |= bit_pos_data_val; 
+ 221   1              return;
+ 222   1           }
+ 223   1            // If we want 0 bit value at bit_pos, then only that bit_pos of data is set to 0   and all other bit
+             -s of data are unchanged. /
+ 224   1           bit_pos_data_val = ~bit_pos_data_val; // Complement
+ 225   1           // if bit_pos = 2, then  bit_pos_data_val= 11111011 /
+ 226   1         // Bitwise AND 
+ 227   1           *data &= bit_pos_data_val; */
+ 228   1         
+ 229   1         if (set_bit_val == 1)
+ 230   1              Set_Bit_in_Data(data_ptr, bit_pos);
+ 231   1           else
+ 232   1             Clear_Bit_in_Data(data_ptr, bit_pos ); 
+ 233   1         return;
+ 234   1      }
+ 235          /*------------------------------------------------------------------*-
+ 236            ---- END OF FILE -------------------------------------------------
+ 237          -*------------------------------------------------------------------*/   
+C51 COMPILER V9.60.0.0   MAIN                                                              08/28/2022 21:21:43 PAGE 5   
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    759    ----
+   CONSTANT SIZE    =     45    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      44
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
