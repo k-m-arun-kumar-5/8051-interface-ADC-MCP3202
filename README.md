@@ -1,6 +1,6 @@
 Description :
 =============
-I just shared my works, which I worked as learning path and practiced Embedded C programming using AT89C51 (a 8051-based 8 bit CMOS controller) with A GPIO pin to act as SPI interface to ADC module (MCP3202) and the Application Task to read analog voltage in channel 0 of MCP3202 and display analog voltage and percentage in LCD using 4 bit interface. 
+I just shared my works, which I worked as learning path and practiced Embedded C programming using AT89C51 (a 8051-based 8 bit CMOS controller) with a GPIO pin to act as SPI interface to ADC module (MCP3202) and the Application Task to read analog voltage in channel 0 of MCP3202 and display analog voltage and percentage in LCD using 4 bit interface. 
 
 Purpose :
 =========
