@@ -1,0 +1,7 @@
+".\Objects\STARTUP.obj",
+".\Objects\lcd.obj",
+".\Objects\main.obj",
+".\Objects\mcp3202.obj",
+".\Objects\uart.obj" 
+TO ".\Objects\MCP3202_ADC" 
+PRINT(".\Listings\MCP3202_ADC.m51")
